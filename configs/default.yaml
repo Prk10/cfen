@@ -1,0 +1,31 @@
+DATASET:
+  USE_SYNTHETIC: true        # set to false to use real .npz files
+  DATA_DIR: ./data_npz       # directory containing .npz files (if USE_SYNTHETIC=false)
+  NUM_OBJ_CLASSES: 151       # 150 + background typical of VG150
+  NUM_REL_CLASSES: 51        # 50 + background
+  FEAT_DIM: 1024             # RoI feature dim
+  NUM_SYNTHETIC_IMAGES: 300  # for quick demo
+
+TRAIN:
+  BATCH_SIZE: 1              # variable-sized graphs -> easiest is batch_size=1
+  EPOCHS: 5
+  LR: 0.001
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 0.0001
+  LOG_INTERVAL: 20
+  VAL_INTERVAL: 1
+  NUM_WORKERS: 2
+  SEED: 1337
+  GRAD_CLIP_NORM: 5.0
+
+MODEL:
+  FEAT_DIM: 1024
+  DM_LAMBDA: 0.4             # weight for DM loss
+  EMA_ALPHA: 0.0005          # EMA update for class-generic features
+  FUSION: "sum"              # "sum" fusion of L_f and L_sp. fact_only for no fusion
+
+EVAL:
+  TOPK: 50
+
+OUTPUT:
+  CKPT_DIR: ./checkpoints
