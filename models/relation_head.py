@@ -4,7 +4,7 @@ import torch.nn as nn
 class RelationHead(nn.Module):
     """
     Simple MLP relation classifier operating on concatenated subject/object features.
-    You can swap this with a BiLSTM/TreeLSTM context encoder later.
+    Can be swapped  with a BiLSTM/TreeLSTM context encoder later.
     """
     def __init__(self, feat_dim: int, num_rel_classes: int):
         super().__init__()
