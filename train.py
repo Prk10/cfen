@@ -35,8 +35,10 @@ def main():
         )
     else:
         data_dir = cfg["DATASET"]["DATA_DIR"]
-        train_ds = NPZSceneGraphDataset(data_dir, split="train")
-        val_ds = NPZSceneGraphDataset(data_dir, split="val")
+        json_path = os.path.join(cfg["BASE_DIR"], 'image_data.json')
+        h5_path = os.path.join(cfg["BASE_DIR"], 'VG-SGG-with-attri.h5')
+        train_ds = NPZSceneGraphDataset(data_dir, image_data_json=json_path, h5_path=h5_path, split="train")
+        val_ds = NPZSceneGraphDataset(data_dir, image_data_json=json_path, h5_path=h5_path, split="val")
 
     train_loader = DataLoader(
         train_ds, batch_size=cfg["TRAIN"]["BATCH_SIZE"],
@@ -73,7 +75,7 @@ def main():
     for epoch in range(1, cfg["TRAIN"]["EPOCHS"] + 1):
         model.train()
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{cfg['TRAIN']['EPOCHS']}")
-        for feats, obj_labels, rel_pairs, rel_labels in pbar:
+        for feats, obj_labels, rel_pairs, rel_labels, _ in pbar:
             feats = feats.to(device)
             obj_labels = obj_labels.to(device)
             rel_pairs = rel_pairs.to(device)
@@ -101,7 +103,7 @@ def main():
             model.eval()
             r50_total, mr50_total, n_batches = 0.0, 0.0, 0
             with torch.no_grad():
-                for feats, obj_labels, rel_pairs, rel_labels in val_loader:
+                for feats, obj_labels, rel_pairs, rel_labels, _ in val_loader:
                     feats = feats.to(device)
                     obj_labels = obj_labels.to(device)
                     rel_pairs = rel_pairs.to(device)

@@ -29,3 +29,5 @@ EVAL:
 
 OUTPUT:
   CKPT_DIR: ./checkpoints
+
+BASE_DIR: /Users/prk/Documents/AL_ML/cfen/dataset_specifics

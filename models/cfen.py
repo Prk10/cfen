@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .relation_head import RelationHead
+from .relation_head import RelationHead, CFENRelationHead
 
 class CFEN(nn.Module):
     """
@@ -23,7 +23,9 @@ class CFEN(nn.Module):
         self.fusion = fusion
 
         # Relation heads (share weights between branches for faithfulness/simplicity)
-        self.rel_head = RelationHead(feat_dim, num_rel_classes)
+        #self.rel_head = RelationHead(feat_dim, num_rel_classes)
+
+        self.rel_head = CFENRelationHead(feat_dim, num_rel_classes)
 
         # Class-generic feature memory (EMA)
         self.register_buffer("class_mean", torch.zeros(num_obj_classes, feat_dim))  # [C_obj, D]
@@ -64,7 +66,8 @@ class CFEN(nn.Module):
         obj_feats  = feats[obj_idx]   # [N_pairs, D]
 
         # Fact branch
-        L_f = self.rel_head(subj_feats, obj_feats)  # [N_pairs, C_rel]
+        #L_f = self.rel_head(subj_feats, obj_feats)  # [N_pairs, C_rel]
+        L_f = self.rel_head(subj_feats, obj_feats, full_image_feats=feats)
 
         # Counterfactual branch: replace with class-generic (EMA) features
         subj_labels = obj_labels[subj_idx]
@@ -74,7 +77,9 @@ class CFEN(nn.Module):
         subj_gen = self.class_mean[subj_labels]  # [N_pairs, D]
         obj_gen  = self.class_mean[obj_labels_]  # [N_pairs, D]
 
-        L_cf = self.rel_head(subj_gen, obj_gen)
+        #L_cf = self.rel_head(subj_gen, obj_gen)
+        full_image_gen_feats = self.class_mean[obj_labels] 
+        L_cf = self.rel_head(subj_gen, obj_gen, full_image_feats=full_image_gen_feats)
 
         # Object-specific influence
         L_sp = L_f - L_cf
