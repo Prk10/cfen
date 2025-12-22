@@ -103,12 +103,9 @@ class CFEN(nn.Module):
         loss = None
         if rel_labels is not None:
             ce = F.cross_entropy(L_f, rel_labels)  # CE on fact branch
-
-            # DM loss: encourage L_sp to put mass on the true class
-            # Target = one-hot of rel_labels; KL( target || softmax(L_sp) )
-            log_probs = F.log_softmax(L_sp, dim=1)
-            target = F.one_hot(rel_labels, num_classes=self.num_rel_classes).float()
-            dm = F.kl_div(log_probs, target, reduction="batchmean")
+            l_sp_log_probs = F.log_softmax(L_sp, dim=1)
+            target_dist = F.one_hot(rel_labels, num_classes=self.num_rel_classes).float()
+            dm = F.kl_div(l_sp_log_probs, target_dist, reduction='batchmean')
 
             loss = ce + self.dm_lambda * dm
             outputs.update({"loss": loss, "loss_ce": ce, "loss_dm": dm})

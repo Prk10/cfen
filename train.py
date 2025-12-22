@@ -110,9 +110,21 @@ def main():
                     rel_labels = rel_labels.to(device)
                     out = model(feats, obj_labels, rel_pairs, None, update_ema=False)
                     logits = out["logits"]
-                    r50_total += recall_at_k(logits, rel_labels, k=cfg["EVAL"]["TOPK"])
-                    mr50_total += mean_recall_at_k(logits, rel_labels, k=cfg["EVAL"]["TOPK"], num_classes=cfg["DATASET"]["NUM_REL_CLASSES"])
+                    mask = rel_labels > 0 
+                    
+                    if mask.sum() > 0:
+                        valid_logits = logits[mask]
+                        valid_labels = rel_labels[mask]
+
+                        r50_total += recall_at_k(valid_logits, valid_labels, k=cfg["EVAL"]["TOPK"])
+                        mr50_total += mean_recall_at_k(
+                            valid_logits, 
+                            valid_labels, 
+                            k=cfg["EVAL"]["TOPK"], 
+                            num_classes=cfg["DATASET"]["NUM_REL_CLASSES"]
+                        )
                     n_batches += 1
+            divisor = max(1, n_batches)
             print(f"[Val] Epoch {epoch} | R@{cfg['EVAL']['TOPK']}: {r50_total / max(1,n_batches):.4f} | mR@{cfg['EVAL']['TOPK']}: {mr50_total / max(1,n_batches):.4f}")
 
         # Save checkpoint
