@@ -101,6 +101,53 @@ def main():
         # Validation
         if epoch % cfg["TRAIN"]["VAL_INTERVAL"] == 0:
             model.eval()
+            
+            # Initialize accumulators for all required metrics
+            metrics = {
+                "R@50": 0.0, "R@100": 0.0,
+                "mR@50": 0.0, "mR@100": 0.0
+            }
+            n_batches = 0
+
+            with torch.no_grad():
+                for i, (feats, obj_labels, rel_pairs, rel_labels, _) in enumerate(val_loader):
+                    feats = feats.to(device)
+                    obj_labels = obj_labels.to(device)
+                    rel_pairs = rel_pairs.to(device)
+                    rel_labels = rel_labels.to(device)
+                    
+                    # Forward pass
+                    out = model(feats, obj_labels, rel_pairs, None, update_ema=False)
+                    logits = out["logits"]
+
+                    # Mask for valid (foreground) relationships
+                    mask = rel_labels > 0
+                    
+                    if mask.sum() > 0:
+                        valid_logits = logits[mask]
+                        valid_labels = rel_labels[mask]
+                        num_classes = cfg["DATASET"]["NUM_REL_CLASSES"]
+
+                        # Calculate and accumulate metrics
+                        # Note: If num_classes < 50 or 100, k will be clamped to num_classes automatically 
+                        # by most implementations, or result in 1.0 recall if k >= num_classes.
+                        metrics["R@50"] += recall_at_k(valid_logits, valid_labels, k=50)
+                        metrics["R@100"] += recall_at_k(valid_logits, valid_labels, k=100)
+                        
+                        metrics["mR@50"] += mean_recall_at_k(valid_logits, valid_labels, k=50, num_classes=num_classes)
+                        metrics["mR@100"] += mean_recall_at_k(valid_logits, valid_labels, k=100, num_classes=num_classes)
+                        
+                        n_batches += 1
+            
+            # Calculate averages
+            divisor = max(1, n_batches)
+            print(f"\n[Val] Epoch {epoch} Metrics:")
+            print(f"  R@50:  {metrics['R@50'] / divisor:.4f} | R@100:  {metrics['R@100'] / divisor:.4f}")
+            print(f"  mR@50: {metrics['mR@50'] / divisor:.4f} | mR@100: {metrics['mR@100'] / divisor:.4f}\n")
+
+        """
+        if epoch % cfg["TRAIN"]["VAL_INTERVAL"] == 0:
+            model.eval()
             r50_total, mr50_total, n_batches = 0.0, 0.0, 0
             with torch.no_grad():
                 for i, (feats, obj_labels, rel_pairs, rel_labels, _) in enumerate(val_loader):
@@ -152,7 +199,7 @@ def main():
                         r50_total += r1 # Reusing variable name, but storing R@1
                         mr50_total += mr1
                         
-                        """
+                        
 
                         r50_total += recall_at_k(valid_logits, valid_labels, k=cfg["EVAL"]["TOPK"])
                         mr50_total += mean_recall_at_k(
@@ -161,11 +208,11 @@ def main():
                             k=cfg["EVAL"]["TOPK"], 
                             num_classes=cfg["DATASET"]["NUM_REL_CLASSES"]
                         )
-                        """
+                        
                     n_batches += 1
             divisor = max(1, n_batches)
             print(f"[Val] Epoch {epoch} | R@{cfg['EVAL']['TOPK']}: {r50_total / max(1,n_batches):.4f} | mR@{cfg['EVAL']['TOPK']}: {mr50_total / max(1,n_batches):.4f}")
-
+        """
         # Save checkpoint
         ckpt_path = os.path.join(cfg["OUTPUT"]["CKPT_DIR"], f"cfen_epoch{epoch}.pt")
         torch.save({
