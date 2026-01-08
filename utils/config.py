@@ -37,5 +37,6 @@ def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", type=str, default="configs/default.yaml")
     ap.add_argument("overrides", nargs="*", help="KEY VALUE pairs to override config")
+    ap.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
     args = ap.parse_args()
     return args
