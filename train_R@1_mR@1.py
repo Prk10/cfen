@@ -137,10 +137,30 @@ def main():
         weight_decay=cfg["TRAIN"]["WEIGHT_DECAY"]
     )
 
+    start_epoch = 1
+    if args.resume:
+        if os.path.isfile(args.resume):
+            print(f"Loading checkpoint '{args.resume}'...")
+            checkpoint = torch.load(args.resume, map_location=device)
+            
+            # 1. Load Model Weights
+            model.load_state_dict(checkpoint['model_state'])
+            
+            # 2. Load Optimizer State (important for momentum/decay)
+            optimizer.load_state_dict(checkpoint['optimizer_state'])
+            
+            # 3. Update Start Epoch
+            # We add 1 because the saved epoch was the last fully completed one
+            start_epoch = checkpoint['epoch'] + 1
+            
+            print(f"Resuming from epoch {start_epoch}")
+        else:
+            print(f"No checkpoint found at '{args.resume}'")
+
     os.makedirs(cfg["OUTPUT"]["CKPT_DIR"], exist_ok=True)
 
     global_step = 0
-    for epoch in range(1, cfg["TRAIN"]["EPOCHS"] + 1):
+    for epoch in range(start_epoch, cfg["TRAIN"]["EPOCHS"] + 1):
         model.train()
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{cfg['TRAIN']['EPOCHS']}")
         for feats, obj_labels, rel_pairs, rel_labels, _ in pbar:
